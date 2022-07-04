@@ -1,81 +1,76 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
-</script>
-
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+    <div>
+        <button @click="login">Login with Metamask</button>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+        <div v-if="user">
+            <h3>USER</h3>
+            <pre>{{ user }}</pre>
+        </div>
+
+        <div v-if="error" style="color: red">
+            <h3>ERROR</h3>
+            {{ error.message }}
+        </div>
     </div>
-  </header>
-
-  <main>
-    <TheWelcome />
-  </main>
 </template>
 
-<style>
-@import './assets/base.css';
+<script>
+    /**
+     *
+     * Web3 integration to Vite solved with:
+     * https://stackoverflow.com/questions/72075742/error-with-web3js-nodejs-utils-in-vite-react-ts-app-how-to-resolve-typeerror
+     *
+     */
+    import Web3 from 'web3';
+    import Moralis from 'moralis';
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+    export default {
+        name: 'App',
+        components: {},
+        data() {
+            return {
+                user: null,
+                web3: null,
 
-  font-weight: normal;
-}
+                error: null
+            }
+        },
+        computed: {},
+        methods : {
+            login() {
+                this.error = null;
+                Moralis.Web3.authenticate()
+                    .then(user => {
+                        this.user = user;
 
-header {
-  line-height: 1.5;
-}
+                        // set some properties
+                        this.user.set('lastAccess', new Date());
+                        this.user.save();
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
+                        console.log(this.user);
+                    })
+                    .catch(error => {
+                        console.log('USER AUTHENTICATE: ', error);
+                        this.error = error;
+                    });
+            }
+        },
+        created() {
+            Moralis.initialize(import.meta.env.VITE_MORALIS_APP_ID);
+            Moralis.serverURL = import.meta.env.VITE_MORALIS_SERVER_URL;
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-}
+            // Enable web3 and get the initialized web3 instance from Web3.js
+            Moralis.enableWeb3()
+                .then(response => {
+                    this.web3 = new Web3(Moralis.provider);
+                })
+                .catch(error => {
+                    console.log('ENABLE WEB3: ', error)
+                });
+        }
+    }
+</script>
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
+<style scoped>
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
-
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-}
 </style>
